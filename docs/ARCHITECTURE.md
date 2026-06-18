@@ -1,6 +1,6 @@
 # Architecture
 
-CertPath AI is a local-first single-page application built on Next.js 15. There
+CertPath AI is a local-first single-page application built on Next.js 16. There
 is no backend and no database server — all state lives in the browser
 (IndexedDB), and the only network calls are direct, client-side requests to the
 user's chosen LLM provider.

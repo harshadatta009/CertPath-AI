@@ -4,7 +4,7 @@
 
 <p>
   <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-blue.svg" />
-  <img alt="Next.js 15" src="https://img.shields.io/badge/Next.js-15-black?logo=next.js" />
+  <img alt="Next.js 16" src="https://img.shields.io/badge/Next.js-16-black?logo=next.js" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white" />
   <img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" />
 </p>
@@ -61,7 +61,7 @@ First supported exam: **AWS Certified Solutions Architect – Associate (SAA-C03
 
 ## 🧱 Tech stack
 
-Next.js 15 (App Router) · TypeScript · TailwindCSS · shadcn/ui-style primitives ·
+Next.js 16 (App Router, Turbopack) · TypeScript · TailwindCSS · shadcn/ui-style primitives ·
 Framer Motion · Zustand · React Hook Form · Zod · Dexie (IndexedDB) · Recharts ·
 TanStack Query · Lucide · date-fns · next-themes · jsPDF · Vitest · Testing
 Library · Playwright.
