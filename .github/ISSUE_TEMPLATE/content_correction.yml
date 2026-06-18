@@ -1,0 +1,44 @@
+name: 📝 Content correction
+description: Report an inaccurate question, explanation, flashcard, or cheat sheet
+labels: ["content", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Accuracy is the whole point of our community-reviewed content. Thank you
+        for catching this! If you can, open a PR against the relevant file in
+        `src/content/` — see **docs/CONTENT.md**.
+  - type: input
+    id: cert
+    attributes:
+      label: Certification
+      placeholder: "AWS Solutions Architect Associate (SAA-C03)"
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Content type
+      options: [Practice question, Flashcard, Cheat sheet, Roadmap, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: whats-wrong
+    attributes:
+      label: What is incorrect?
+      description: Quote the exact text and explain the error.
+    validations:
+      required: true
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Authoritative source
+      description: Link to official docs supporting the correction.
+    validations:
+      required: true

@@ -1,0 +1,45 @@
+name: 🎓 Add / improve a certification
+description: Propose a new certification or improve an existing one's domains & content
+labels: ["certification", "good first issue"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Adding a certification is one config file + (optionally) a content pack.
+        See **docs/CERTIFICATIONS.md** and **docs/CONTENT.md** before starting.
+  - type: input
+    id: cert
+    attributes:
+      label: Certification name & code
+      placeholder: "Microsoft Azure Administrator (AZ-104)"
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Vendor
+      options: [AWS, Azure, GCP, Kubernetes, HashiCorp, Red Hat, CompTIA, Other]
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Official exam guide URL
+      description: We mirror official domain weightings — link the source of truth.
+    validations:
+      required: true
+  - type: textarea
+    id: domains
+    attributes:
+      label: Domains & weightings (if known)
+      placeholder: |
+        - Manage identities and governance — 20%
+        - Implement and manage storage — 15%
+        ...
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd like to submit the config file myself
+        - label: I can also contribute reviewed practice questions / flashcards
