@@ -34,6 +34,7 @@ export function ProfileForm({ defaultCertId }: { defaultCertId: string }) {
   const router = useRouter();
   const generate = useRoadmapStore((s) => s.generate);
   const generating = useRoadmapStore((s) => s.generating);
+  const progress = useRoadmapStore((s) => s.progress);
   const { settings, setActiveRoadmap } = useSettingsStore();
   const certs = getAvailableCertifications();
 
@@ -166,7 +167,8 @@ export function ProfileForm({ defaultCertId }: { defaultCertId: string }) {
           >
             {generating ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" /> Generating your roadmap…
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {progress || "Generating your roadmap…"}
               </>
             ) : (
               <>

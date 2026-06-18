@@ -12,9 +12,12 @@ import type {
   RevisionRequest,
 } from "./types";
 import type { AIProviderId } from "@/types";
+import type { RoadmapOutlineRequest, RoadmapDaysRequest } from "./types";
 import {
   type ChatMessage,
   roadmapPrompt,
+  roadmapOutlinePrompt,
+  roadmapDaysPrompt,
   questionsPrompt,
   flashcardsPrompt,
   cheatSheetPrompt,
@@ -23,6 +26,8 @@ import {
 } from "./prompts";
 import {
   rawRoadmapSchema,
+  rawRoadmapOutlineSchema,
+  rawRoadmapDaysSchema,
   rawQuestionsSchema,
   rawFlashcardsSchema,
   rawCheatSheetSchema,
@@ -194,6 +199,18 @@ export abstract class OpenAICompatibleProvider implements AIProvider {
   // High-level generation — shared by every OpenAI-compatible provider.
   async generateRoadmap(req: RoadmapRequest) {
     return this.generateValidated(roadmapPrompt(req), rawRoadmapSchema);
+  }
+
+  async generateRoadmapOutline(req: RoadmapOutlineRequest) {
+    return this.generateValidated(roadmapOutlinePrompt(req), rawRoadmapOutlineSchema);
+  }
+
+  async generateRoadmapDays(req: RoadmapDaysRequest) {
+    const { days } = await this.generateValidated(
+      roadmapDaysPrompt(req),
+      rawRoadmapDaysSchema,
+    );
+    return days;
   }
 
   async generateQuestions(req: QuestionRequest) {

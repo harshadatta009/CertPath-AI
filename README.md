@@ -36,7 +36,9 @@ an optional LLM key unlocks unlimited AI-generated material on top.
   repo and improve via pull requests — see [docs/CONTENT.md](docs/CONTENT.md).
 - **Offline-first.** All generated content is readable offline; only *new*
   generations need the network.
-- **Multi-certification by design.** AWS SAA-C03 ships today. Adding Azure, GCP,
+- **Multi-certification by design.** Nine exams ship today — AWS SAA-C03, Azure
+  AZ-104, GCP ACE, Cisco CCNA, CKA, CKAD, Terraform Associate, RHCSA and CompTIA
+  Security+. Adding more Azure, GCP,
   CKA/CKAD, Terraform, RHCSA, or CompTIA is **one config file** — no engine
   changes.
 

@@ -1,5 +1,7 @@
 import type {
   RoadmapRequest,
+  RoadmapOutlineRequest,
+  RoadmapDaysRequest,
   QuestionRequest,
   FlashcardRequest,
   CheatSheetRequest,
@@ -75,6 +77,80 @@ Return JSON shaped exactly as:
   "weeks": [{ "weekNumber": number, "title": string, "theme": string, "focusDomainIds": string[], "goals": string[] }],
   "days": [{ "dayNumber": number, "title": string, "domainId": string, "topics": string[], "objectives": string[], "estimatedHours": number, "labs": [{ "title": string, "description": string, "estimatedMinutes": number }], "revisionTopics": string[], "practiceQuestions": number, "examTips": string[] }]
 }`,
+    },
+  ];
+}
+
+function profileLines(req: { profile: RoadmapRequest["profile"]; certification: CertificationConfig; totalDays: number }): string {
+  const { profile, certification, totalDays } = req;
+  return `Learner profile:
+- Experience: ${profile.yearsExperience} years as ${profile.currentRole} (tier: ${profile.experienceLevel})
+- Prior knowledge of this domain: ${profile.knowledgeLevel}
+- Daily study time: ${profile.dailyStudyHours} hours
+- Days until exam: ${totalDays}
+- Goal score: ${profile.goalScore}/${certification.exam.maxScore}
+${profile.notes ? `- Focus notes: ${profile.notes}` : ""}`;
+}
+
+/** Outline-only call: high-level structure, NO day entries (kept small). */
+export function roadmapOutlinePrompt(req: RoadmapOutlineRequest): ChatMessage[] {
+  const { certification, totalDays } = req;
+  const weeks = Math.ceil(totalDays / 7);
+  const months = Math.ceil(totalDays / 30);
+  return [
+    { role: "system", content: JSON_RULES },
+    {
+      role: "user",
+      content: `${certContext(certification)}
+
+Design the high-level STRUCTURE of a personalized study roadmap (no day-by-day detail yet).
+${profileLines(req)}
+
+Requirements:
+- Provide EXACTLY ${weeks} week summaries (weekNumber 1..${weeks}) and ${months} month summary/summaries (monthNumber 1..${months}).
+- Allocate weeks across domains proportional to their exam weightage; front-load fundamentals and reserve the final week(s) for revision and practice exams.
+- Each week: a theme, the focus domain ids it covers, and concrete goals.
+
+Return JSON shaped exactly as:
+{
+  "title": string,
+  "summary": string,
+  "months": [{ "monthNumber": number, "title": string, "theme": string, "milestone": string }],
+  "weeks": [{ "weekNumber": number, "title": string, "theme": string, "focusDomainIds": string[], "goals": string[] }]
+}`,
+    },
+  ];
+}
+
+/** Day-batch call: generate ONLY days startDay..endDay, given week themes. */
+export function roadmapDaysPrompt(req: RoadmapDaysRequest): ChatMessage[] {
+  const { certification, startDay, endDay, weeks } = req;
+  const count = endDay - startDay + 1;
+  const weekContext = weeks
+    .map(
+      (w) =>
+        `- Week ${w.weekNumber}: ${w.theme}. Focus: ${(w.focusDomainIds ?? []).join(", ") || "mixed"}. Goals: ${(w.goals ?? []).join("; ")}`,
+    )
+    .join("\n");
+  return [
+    { role: "system", content: JSON_RULES },
+    {
+      role: "user",
+      content: `${certContext(certification)}
+
+${profileLines(req)}
+
+You are filling in PART of an already-planned roadmap. Generate the daily plan for days ${startDay} through ${endDay} only.
+Relevant week themes for this range:
+${weekContext || "(use your judgement based on exam weightage)"}
+
+Requirements:
+- Produce EXACTLY ${count} day entries, with "dayNumber" values ${startDay},${startDay + 1},…,${endDay} (no gaps, no duplicates, no days outside this range).
+- Respect the learner's ${req.profile.dailyStudyHours}h/day budget for estimatedHours.
+- Each day: concrete topics, measurable objectives, hands-on labs, revision topics, a practice-question count, and exam tips, consistent with the week themes above.
+
+Return JSON shaped exactly as:
+{ "days": [{ "dayNumber": number, "title": string, "domainId": string, "topics": string[], "objectives": string[], "estimatedHours": number, "labs": [{ "title": string, "description": string, "estimatedMinutes": number }], "revisionTopics": string[], "practiceQuestions": number, "examTips": string[] }] }`,
     },
   ];
 }

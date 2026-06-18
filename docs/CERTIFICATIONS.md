@@ -57,7 +57,7 @@ export const az104: CertificationConfig = {
   allocates study days proportionally and analytics weights mastery by it.
 - **`color`** drives the card accent and roadmap header.
 - Set **`available: false`** to show a "coming soon" card without making it
-  selectable (see `placeholders.ts` for minimal examples).
+  selectable (a config with an empty `domains: []` is fine for a teaser).
 
 ## 2. Register it
 

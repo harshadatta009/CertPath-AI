@@ -1,6 +1,9 @@
 import type { CertificationConfig, UserProfile } from "@/types";
 import type {
   RawRoadmap,
+  RawRoadmapOutline,
+  RawDay,
+  RawWeek,
   RawQuestion,
   RawFlashcard,
   RawCheatSheet,
@@ -17,6 +20,22 @@ export interface GenerationContext {
 export interface RoadmapRequest extends GenerationContext {
   profile: UserProfile;
   totalDays: number;
+}
+
+/** Outline-only generation (title/summary/weeks/months, no days). */
+export interface RoadmapOutlineRequest extends GenerationContext {
+  profile: UserProfile;
+  totalDays: number;
+}
+
+/** Generate only the days in [startDay, endDay], given week-level context. */
+export interface RoadmapDaysRequest extends GenerationContext {
+  profile: UserProfile;
+  totalDays: number;
+  startDay: number;
+  endDay: number;
+  /** Week summaries overlapping this range, for thematic consistency. */
+  weeks: RawWeek[];
 }
 
 export interface QuestionRequest extends GenerationContext {
@@ -61,6 +80,9 @@ export interface AIProvider {
   validateKey(): Promise<boolean>;
 
   generateRoadmap(req: RoadmapRequest): Promise<RawRoadmap>;
+  /** Chunked generation: outline first, then day batches (reliable on any model). */
+  generateRoadmapOutline(req: RoadmapOutlineRequest): Promise<RawRoadmapOutline>;
+  generateRoadmapDays(req: RoadmapDaysRequest): Promise<RawDay[]>;
   generateQuestions(req: QuestionRequest): Promise<RawQuestion[]>;
   generateFlashcards(req: FlashcardRequest): Promise<RawFlashcard[]>;
   generateCheatSheet(req: CheatSheetRequest): Promise<RawCheatSheet>;

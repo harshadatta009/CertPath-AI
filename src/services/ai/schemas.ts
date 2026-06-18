@@ -52,6 +52,25 @@ export const rawRoadmapSchema = z.object({
   days: z.array(rawDaySchema).min(1),
 });
 export type RawRoadmap = z.infer<typeof rawRoadmapSchema>;
+export type RawDay = z.infer<typeof rawDaySchema>;
+export type RawWeek = z.infer<typeof rawWeekSchema>;
+
+/**
+ * Chunked generation contracts: an outline (title/summary/weeks/months, no days)
+ * plus per-batch day lists. This keeps each model response small so even modest
+ * models reliably return complete, well-formed output for long plans.
+ */
+export const rawRoadmapOutlineSchema = z.object({
+  title: z.string(),
+  summary: z.string(),
+  months: z.array(rawMonthSchema).min(1),
+  weeks: z.array(rawWeekSchema).min(1),
+});
+export type RawRoadmapOutline = z.infer<typeof rawRoadmapOutlineSchema>;
+
+export const rawRoadmapDaysSchema = z.object({
+  days: z.array(rawDaySchema).min(1),
+});
 
 // --------------------------------------------------------------- Questions ---
 export const rawQuestionSchema = z.object({
