@@ -127,7 +127,6 @@ export async function seedAllContent(): Promise<void> {
       await seedCertification(pack.certificationId);
     } catch (err) {
       // Never block app startup on seeding.
-      // eslint-disable-next-line no-console
       console.warn(`Seeding failed for ${pack.certificationId}`, err);
     }
   }
