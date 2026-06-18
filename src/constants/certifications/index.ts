@@ -1,14 +1,13 @@
 import type { CertificationConfig } from "@/types";
 import { awsSaaC03 } from "./aws-saa";
-import {
-  azureAz104,
-  gcpAce,
-  cka,
-  ckad,
-  terraformAssociate,
-  rhcsa,
-  comptiaSecurityPlus,
-} from "./placeholders";
+import { azureAz104 } from "./azure-az104";
+import { gcpAce } from "./gcp-ace";
+import { ccna } from "./ccna";
+import { cka } from "./cka";
+import { ckad } from "./ckad";
+import { terraformAssociate } from "./terraform-associate";
+import { rhcsa } from "./rhcsa";
+import { comptiaSecurityPlus } from "./comptia-security-plus";
 
 /**
  * Central certification registry.
@@ -21,6 +20,7 @@ export const CERTIFICATIONS: CertificationConfig[] = [
   awsSaaC03,
   azureAz104,
   gcpAce,
+  ccna,
   cka,
   ckad,
   terraformAssociate,

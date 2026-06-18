@@ -13,7 +13,8 @@ export type CertificationProvider =
   | "kubernetes"
   | "hashicorp"
   | "redhat"
-  | "comptia";
+  | "comptia"
+  | "cisco";
 
 export interface CertTopic {
   id: string;

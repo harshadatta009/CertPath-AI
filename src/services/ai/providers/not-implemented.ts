@@ -30,6 +30,8 @@ export abstract class NotImplementedProvider implements AIProvider {
     return false;
   }
   generateRoadmap = () => this.fail();
+  generateRoadmapOutline = () => this.fail();
+  generateRoadmapDays = () => this.fail();
   generateQuestions = () => this.fail();
   generateFlashcards = () => this.fail();
   generateCheatSheet = () => this.fail();

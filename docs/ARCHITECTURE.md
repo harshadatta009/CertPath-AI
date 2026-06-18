@@ -59,15 +59,23 @@ Pure-ish business logic with **no UI imports**:
 
 ## Data flow: generating a roadmap
 
+Roadmaps are generated in **chunks** for reliability: one small outline call,
+then one call per ~week of days. This keeps every model response small enough to
+be complete and well-formed even on lighter models, and the assembler guarantees
+the full day range is covered (gap-filling fallback days if a batch under-delivers).
+
 ```
 ProfileForm (RHF + Zod)
-  → roadmap-store.generate(profile, settings)
-    → roadmap-service.generateRoadmap()
+  → roadmap-store.generate(profile, settings)         // tracks `progress`
+    → roadmap-service.generateRoadmap(…, onProgress)
       → createProvider(settings.provider, {apiKey})   // factory
-        → GrokProvider.generateRoadmap()              // AIProvider
-          → prompts.roadmapPrompt() → chat() → extractJson() → Zod validate (retry)
-      → buildRoadmap(raw, cert, profile)              // map → entity
-      → roadmapRepo.save(roadmap)                     // IndexedDB
+        → provider.generateRoadmapOutline()           // title/summary/weeks/months
+        → for each ~7-day batch:
+            provider.generateRoadmapDays({start,end,weeks})
+            → prompt → chat() → extractJson() → Zod validate (retry)
+            → normalizeDayChunk()                      // renumber + fallback-fill
+      → buildRoadmap(rawOutline + assembledDays)       // map → entity, assign dates
+      → roadmapRepo.save(roadmap)                      // IndexedDB
   → store updates → RoadmapView re-renders
 ```
 

@@ -11,6 +11,8 @@ interface RoadmapState {
   active: Roadmap | null;
   completions: DayCompletion[];
   generating: boolean;
+  /** Human-readable progress message during chunked generation. */
+  progress: string;
   loaded: boolean;
 
   load: (activeId: string | null) => Promise<void>;
@@ -26,6 +28,7 @@ export const useRoadmapStore = create<RoadmapState>((set, get) => ({
   active: null,
   completions: [],
   generating: false,
+  progress: "",
   loaded: false,
 
   async load(activeId) {
@@ -39,15 +42,17 @@ export const useRoadmapStore = create<RoadmapState>((set, get) => ({
   },
 
   async generate(profile, settings) {
-    set({ generating: true });
+    set({ generating: true, progress: "Starting…" });
     try {
       const cert = getCertificationOrThrow(profile.certificationId);
-      const roadmap = await runGeneration(cert, profile, settings);
+      const roadmap = await runGeneration(cert, profile, settings, (message) =>
+        set({ progress: message }),
+      );
       const roadmaps = await roadmapRepo.getAll();
       set({ roadmaps, active: roadmap, completions: [] });
       return roadmap;
     } finally {
-      set({ generating: false });
+      set({ generating: false, progress: "" });
     }
   },
 
