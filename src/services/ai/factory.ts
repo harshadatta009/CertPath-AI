@@ -3,7 +3,8 @@ import type { AIProviderId } from "@/types";
 import { GroqProvider } from "./providers/groq";
 import { GrokProvider } from "./providers/grok";
 import { OpenAIProvider } from "./providers/openai";
-import { ClaudeProvider, GeminiProvider } from "./providers/not-implemented";
+import { ClaudeProvider } from "./providers/anthropic";
+import { GeminiProvider } from "./providers/gemini";
 import { AIError } from "./errors";
 
 type ProviderCtor = new (config: ProviderConfig) => AIProvider;
@@ -50,25 +51,26 @@ export const PROVIDER_META: ProviderMeta[] = [
     id: "openai",
     label: "OpenAI",
     defaultModel: "gpt-4o-mini",
-    available: false,
+    available: true,
     keyUrl: "https://platform.openai.com/api-keys",
-    description: "GPT-4o family. Wired and ready — coming soon to the UI.",
+    description: "GPT-4o family. OpenAI-compatible API. Keys start with \"sk-\".",
   },
   {
     id: "claude",
     label: "Claude (Anthropic)",
     defaultModel: "claude-sonnet-4-6",
-    available: false,
+    available: true,
     keyUrl: "https://console.anthropic.com",
-    description: "Anthropic's Claude models. Coming soon.",
+    description:
+      "Anthropic's Claude models via the native Messages API. Keys start with \"sk-ant-\".",
   },
   {
     id: "gemini",
     label: "Gemini (Google)",
     defaultModel: "gemini-1.5-pro",
-    available: false,
+    available: true,
     keyUrl: "https://aistudio.google.com/apikey",
-    description: "Google's Gemini models. Coming soon.",
+    description: "Google's Gemini models via the OpenAI-compatible endpoint.",
   },
 ];
 

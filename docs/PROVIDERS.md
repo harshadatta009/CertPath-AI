@@ -23,10 +23,11 @@ export interface AIProvider {
 
 | Provider | Status | Transport |
 | --- | --- | --- |
+| **Groq** | ✅ Fully supported | OpenAI-compatible (`https://api.groq.com/openai/v1`) |
 | **Grok (xAI)** | ✅ Fully supported | OpenAI-compatible (`https://api.x.ai/v1`) |
-| **OpenAI** | 🟡 Wired, hidden in UI | OpenAI-compatible (`https://api.openai.com/v1`) |
-| **Claude (Anthropic)** | ⚪ Scaffolded | Needs Anthropic adapter |
-| **Gemini (Google)** | ⚪ Scaffolded | Needs Gemini adapter |
+| **OpenAI** | ✅ Fully supported | OpenAI-compatible (`https://api.openai.com/v1`) |
+| **Claude (Anthropic)** | ✅ Fully supported | Native Messages API (`https://api.anthropic.com/v1`) |
+| **Gemini (Google)** | ✅ Fully supported | OpenAI-compatible (`https://generativelanguage.googleapis.com/v1beta/openai`) |
 
 ## Case A — provider speaks the OpenAI chat-completions protocol
 
@@ -45,25 +46,36 @@ export class OpenAIProvider extends OpenAICompatibleProvider {
 }
 ```
 
-## Case B — provider has its own protocol (Claude, Gemini)
+## Case B — provider has its own protocol (Claude)
 
-Implement `AIProvider` directly (or build a small base mirroring
-`OpenAICompatibleProvider`). Reuse the existing prompt builders and Zod schemas:
+Extend `BaseLLMProvider` (the transport-agnostic base) and implement only the
+two low-level methods — `chat()` and `validateKey()`. The prompt builders, JSON
+extraction, Zod validation and retry loop are all inherited:
 
 ```ts
-import { roadmapPrompt /* … */ } from "../prompts";
-import { rawRoadmapSchema /* … */ } from "../schemas";
+// src/services/ai/providers/anthropic.ts
+import { BaseLLMProvider } from "../base-provider";
 
-class ClaudeProvider implements AIProvider {
-  // 1. map ChatMessage[] → the vendor's request shape
-  // 2. POST to the vendor endpoint with the user's apiKey
-  // 3. extract text → extractJson() → schema.safeParse() with retry
-  // 4. return the validated raw object
+export class ClaudeProvider extends BaseLLMProvider {
+  readonly id = "claude" as const;
+  readonly label = "Claude (Anthropic)";
+  readonly defaultModel = "claude-sonnet-4-6";
+
+  protected async chat(messages: ChatMessage[]): Promise<string> {
+    // 1. split system messages into the Messages API `system` field
+    // 2. POST to /v1/messages with x-api-key + anthropic-version headers
+    // 3. concatenate the returned content text blocks
+  }
+
+  async validateKey(): Promise<boolean> {
+    /* a cheap chat() call; false on invalid_key */
+  }
 }
 ```
 
-The scaffolds live in `src/services/ai/providers/not-implemented.ts`; replace the
-`fail()` bodies with real calls.
+See `src/services/ai/providers/anthropic.ts` for the full implementation.
+Gemini, despite being a different vendor, exposes an OpenAI-compatible endpoint,
+so it uses Case A (`src/services/ai/providers/gemini.ts`).
 
 ## Register the provider (3 small edits)
 
