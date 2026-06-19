@@ -60,14 +60,18 @@ export function extractJson(text: string): unknown {
 }
 
 /**
- * Base for OpenAI-compatible chat-completions APIs (xAI/Grok and OpenAI both
- * speak this protocol). Concrete providers supply the base URL and model.
+ * Protocol-agnostic base for every LLM provider. It owns the shared, high-level
+ * generation surface (the generate* methods) plus the validate-and-retry loop —
+ * none of which care *how* a single chat turn is transported. Concrete bases
+ * implement the low-level transport by overriding `chat()` and `validateKey()`:
+ * `OpenAICompatibleProvider` speaks the OpenAI chat-completions protocol, while
+ * the Anthropic provider speaks the native Messages API. This keeps the
+ * generation logic written once and shared across protocols (DRY + Open/Closed).
  */
-export abstract class OpenAICompatibleProvider implements AIProvider {
+export abstract class BaseLLMProvider implements AIProvider {
   abstract readonly id: AIProviderId;
   abstract readonly label: string;
   abstract readonly defaultModel: string;
-  protected abstract readonly baseUrl: string;
 
   protected readonly apiKey: string;
   protected readonly model?: string;
@@ -84,6 +88,109 @@ export abstract class OpenAICompatibleProvider implements AIProvider {
   protected get activeModel(): string {
     return this.model || this.defaultModel;
   }
+
+  /** Low-level chat call returning raw assistant text. Transport-specific. */
+  protected abstract chat(messages: ChatMessage[], opts?: { json?: boolean }): Promise<string>;
+
+  /** Returns true if the key authenticates successfully. Transport-specific. */
+  abstract validateKey(): Promise<boolean>;
+
+  /**
+   * Generate + validate against a Zod schema, retrying on malformed/empty/
+   * rate-limit/network errors with exponential backoff.
+   */
+  protected async generateValidated<S extends z.ZodTypeAny>(
+    messages: ChatMessage[],
+    schema: S,
+  ): Promise<z.infer<S>> {
+    let lastError: AIError | null = null;
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      try {
+        const reinforced =
+          attempt === 0
+            ? messages
+            : [
+                ...messages,
+                {
+                  role: "user" as const,
+                  content:
+                    "Your previous response could not be parsed. Return ONLY the valid JSON object, nothing else.",
+                },
+              ];
+        const text = await this.chat(reinforced, { json: true });
+        const json = extractJson(text);
+        const parsed = schema.safeParse(json);
+        if (parsed.success) return parsed.data;
+        lastError = new AIError(
+          "malformed_response",
+          `Response failed validation: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`,
+          true,
+        );
+      } catch (err) {
+        lastError = toAIError(err);
+        if (!lastError.retryable) throw lastError;
+      }
+      if (attempt < this.maxRetries) await sleep(500 * (attempt + 1));
+    }
+    throw lastError ?? new AIError("unknown", "Generation failed.");
+  }
+
+  // High-level generation — shared by every provider, regardless of transport.
+  async generateRoadmap(req: RoadmapRequest) {
+    return this.generateValidated(roadmapPrompt(req), rawRoadmapSchema);
+  }
+
+  async generateRoadmapOutline(req: RoadmapOutlineRequest) {
+    return this.generateValidated(roadmapOutlinePrompt(req), rawRoadmapOutlineSchema);
+  }
+
+  async generateRoadmapDays(req: RoadmapDaysRequest) {
+    const { days } = await this.generateValidated(
+      roadmapDaysPrompt(req),
+      rawRoadmapDaysSchema,
+    );
+    return days;
+  }
+
+  async generateQuestions(req: QuestionRequest) {
+    const { questions } = await this.generateValidated(
+      questionsPrompt(req),
+      rawQuestionsSchema,
+    );
+    return questions;
+  }
+
+  async generateFlashcards(req: FlashcardRequest) {
+    const { flashcards } = await this.generateValidated(
+      flashcardsPrompt(req),
+      rawFlashcardsSchema,
+    );
+    return flashcards;
+  }
+
+  async generateCheatSheet(req: CheatSheetRequest) {
+    return this.generateValidated(cheatSheetPrompt(req), rawCheatSheetSchema);
+  }
+
+  async generateInterviewQuestions(req: InterviewRequest) {
+    const { questions } = await this.generateValidated(
+      interviewPrompt(req),
+      rawInterviewListSchema,
+    );
+    return questions;
+  }
+
+  async generateRevisionPlan(req: RevisionRequest) {
+    return this.generateValidated(revisionPrompt(req), rawRevisionPlanSchema);
+  }
+}
+
+/**
+ * Base for OpenAI-compatible chat-completions APIs (Groq, xAI/Grok and OpenAI
+ * all speak this protocol). Concrete providers supply the base URL and model.
+ */
+export abstract class OpenAICompatibleProvider extends BaseLLMProvider {
+  protected abstract readonly baseUrl: string;
 
   /** Low-level chat call returning raw assistant text. */
   protected async chat(messages: ChatMessage[], opts?: { json?: boolean }): Promise<string> {
@@ -140,46 +247,6 @@ export abstract class OpenAICompatibleProvider implements AIProvider {
     return content;
   }
 
-  /**
-   * Generate + validate against a Zod schema, retrying on malformed/empty/
-   * rate-limit/network errors with exponential backoff.
-   */
-  protected async generateValidated<S extends z.ZodTypeAny>(
-    messages: ChatMessage[],
-    schema: S,
-  ): Promise<z.infer<S>> {
-    let lastError: AIError | null = null;
-    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
-      try {
-        const reinforced =
-          attempt === 0
-            ? messages
-            : [
-                ...messages,
-                {
-                  role: "user" as const,
-                  content:
-                    "Your previous response could not be parsed. Return ONLY the valid JSON object, nothing else.",
-                },
-              ];
-        const text = await this.chat(reinforced, { json: true });
-        const json = extractJson(text);
-        const parsed = schema.safeParse(json);
-        if (parsed.success) return parsed.data;
-        lastError = new AIError(
-          "malformed_response",
-          `Response failed validation: ${parsed.error.issues.map((i) => i.path.join(".")).join(", ")}`,
-          true,
-        );
-      } catch (err) {
-        lastError = toAIError(err);
-        if (!lastError.retryable) throw lastError;
-      }
-      if (attempt < this.maxRetries) await sleep(500 * (attempt + 1));
-    }
-    throw lastError ?? new AIError("unknown", "Generation failed.");
-  }
-
   async validateKey(): Promise<boolean> {
     try {
       await this.chat(
@@ -194,54 +261,5 @@ export abstract class OpenAICompatibleProvider implements AIProvider {
       if (e.code === "invalid_key") return false;
       throw e;
     }
-  }
-
-  // High-level generation — shared by every OpenAI-compatible provider.
-  async generateRoadmap(req: RoadmapRequest) {
-    return this.generateValidated(roadmapPrompt(req), rawRoadmapSchema);
-  }
-
-  async generateRoadmapOutline(req: RoadmapOutlineRequest) {
-    return this.generateValidated(roadmapOutlinePrompt(req), rawRoadmapOutlineSchema);
-  }
-
-  async generateRoadmapDays(req: RoadmapDaysRequest) {
-    const { days } = await this.generateValidated(
-      roadmapDaysPrompt(req),
-      rawRoadmapDaysSchema,
-    );
-    return days;
-  }
-
-  async generateQuestions(req: QuestionRequest) {
-    const { questions } = await this.generateValidated(
-      questionsPrompt(req),
-      rawQuestionsSchema,
-    );
-    return questions;
-  }
-
-  async generateFlashcards(req: FlashcardRequest) {
-    const { flashcards } = await this.generateValidated(
-      flashcardsPrompt(req),
-      rawFlashcardsSchema,
-    );
-    return flashcards;
-  }
-
-  async generateCheatSheet(req: CheatSheetRequest) {
-    return this.generateValidated(cheatSheetPrompt(req), rawCheatSheetSchema);
-  }
-
-  async generateInterviewQuestions(req: InterviewRequest) {
-    const { questions } = await this.generateValidated(
-      interviewPrompt(req),
-      rawInterviewListSchema,
-    );
-    return questions;
-  }
-
-  async generateRevisionPlan(req: RevisionRequest) {
-    return this.generateValidated(revisionPrompt(req), rawRevisionPlanSchema);
   }
 }

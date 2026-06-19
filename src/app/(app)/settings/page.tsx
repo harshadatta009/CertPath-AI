@@ -118,7 +118,7 @@ export default function SettingsPage() {
                   <Input
                     id="apiKey"
                     type={reveal ? "text" : "password"}
-                    placeholder="xai-..."
+                    placeholder={meta ? `Paste your ${meta.label} key` : "Paste your API key"}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     className="pr-10 font-mono"
